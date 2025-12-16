@@ -14,6 +14,9 @@ This repo contains my implementation for data mining project in my master course
 ### How to proceed:
 1. We should select two datasets from this list: 
    1. ![List_Of_Datasets](./assets/imgs/list_of_datasets.png)
+   2. I chose:
+      1. Iris Dataset.
+      2. Breast Cancer Wisconsin.
 2. Then train and evaluate our KNNClassifier implementation on both datasets.
 3. Also, we should do the same for KNN classifier and a third classifier of our choice from scikit-learn for comparison. 
 4. We must also choose suitable hyper-parameters and split our data into:
@@ -37,3 +40,6 @@ This repo contains my implementation for data mining project in my master course
      - Visualisation of the trained classification model
   3. Discussion of the results.
 - At the end we should also provide a conclusion with short analysis for the results, and any observed differences in accuracy or runtime between our implementation and scikit-learn versions.   
+
+### Solution
+> You can find my analysis and solution in the [data_mining_project_solution notebook](./data_mining_project_solution.ipynb) 
