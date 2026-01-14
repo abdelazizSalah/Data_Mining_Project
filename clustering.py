@@ -2,7 +2,7 @@
 """
 Foundations of Data Mining – Task 1: Clustering Algorithms for Image Segmentation
 
-Implements from scratch:
+Implements:
   - k-means clustering
   - DBSCAN clustering
 Distance metrics:
@@ -15,8 +15,8 @@ Image segmentation:
   - After clustering, recolor each pixel by its cluster's average RGB color
 
 CLI examples:
-  python segment.py --image input.jpg --algorithm kmeans --k 8 --distance euclidean --out out_kmeans.png
-  python segment.py --image input.jpg --algorithm dbscan --eps 12 --min-samples 8 --distance manhattan --out out_dbscan.png
+  python segment.py --image input.jpg --algorithm kmeans --k 5 --distance euclidean --out out_kmeans.png
+  python segment.py --image input.jpg --algorithm dbscan --eps 4 --min-samples 5 --distance manhattan --out out_dbscan.png
 
 Dependencies:
   pip install numpy pillow
@@ -26,17 +26,9 @@ from __future__ import annotations
 
 import argparse
 import time
-from dataclasses import dataclass
-from typing import Optional, Tuple
 
 import numpy as np
 from PIL import Image
-
-
-# ============================================================
-# Distance functions (vectorized)
-# ============================================================
-from utils.distance_functions import pairwise_distance, distance_to_point
 
 
 # ============================================================
@@ -47,154 +39,11 @@ from utils.image_helpers import load_image_as_vectors, vectors_to_image, recolor
 
 
 # ============================================================
-# K-Means (from scratch)
-# ============================================================
-
-@dataclass
-class KMeans:
-    k: int
-    metric: str = "euclidean"
-    max_iter: int = 50
-    tol: float = 1e-4
-    seed: Optional[int] = None
-
-    centroids_: Optional[np.ndarray] = None  # (k,d)
-    labels_: Optional[np.ndarray] = None     # (n,)
-
-    def fit(self, X: np.ndarray) -> "KMeans":
-        """
-        Fit k-means on X (n,d).
-        """
-        if X.ndim != 2:
-            raise ValueError("X must be a 2D array of shape (n,d).")
-
-        n, d = X.shape
-        if self.k < 1 or self.k > n:
-            raise ValueError(f"k must be in [1, n]. Got k={self.k}, n={n}")
-
-        Xf = X.astype(np.float64, copy=False)
-        rng = np.random.default_rng(self.seed)
-
-        # init centroids by sampling k points
-        init_idx = rng.choice(n, size=self.k, replace=False)
-        centroids = Xf[init_idx].copy()
-
-        labels = np.zeros(n, dtype=np.int32)
-
-        for _ in range(self.max_iter):
-            # assignment
-            dist = pairwise_distance(Xf, centroids, self.metric)  # (n,k)
-            new_labels = np.argmin(dist, axis=1).astype(np.int32)
-
-            # update
-            new_centroids = centroids.copy()
-            for j in range(self.k):
-                mask = (new_labels == j)
-                if np.any(mask):
-                    new_centroids[j] = Xf[mask].mean(axis=0)
-                else:
-                    # re-seed empty cluster
-                    new_centroids[j] = Xf[rng.integers(0, n)]
-
-            # convergence
-            shift = np.linalg.norm(new_centroids - centroids)
-            centroids = new_centroids
-            labels = new_labels
-            if shift <= self.tol:
-                break
-
-        self.centroids_ = centroids
-        self.labels_ = labels
-        return self
-
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        if self.centroids_ is None:
-            raise RuntimeError("KMeans not fitted yet.")
-        Xf = X.astype(np.float64, copy=False)
-        dist = pairwise_distance(Xf, self.centroids_, self.metric)
-        return np.argmin(dist, axis=1).astype(np.int32)
-
-
-# ============================================================
-# DBSCAN (from scratch) – simple O(n^2) implementation
-# ============================================================
-
-@dataclass
-class DBSCAN:
-    eps: float
-    min_samples: int
-    metric: str = "euclidean"
-
-    labels_: Optional[np.ndarray] = None  # (n,) -1=noise, 0..C-1 clusters
-
-    def fit(self, X: np.ndarray) -> "DBSCAN":
-        """
-        Fit DBSCAN on X (n,d).
-        Basic implementation: region queries are O(n), overall O(n^2).
-        """
-        if X.ndim != 2:
-            raise ValueError("X must be a 2D array of shape (n,d).")
-
-        n, _ = X.shape
-        if self.eps <= 0:
-            raise ValueError("eps must be > 0")
-        if self.min_samples < 1:
-            raise ValueError("min_samples must be >= 1")
-
-        Xf = X.astype(np.float64, copy=False)
-        labels = np.full(n, -1, dtype=np.int32)
-        visited = np.zeros(n, dtype=bool)
-
-        cluster_id = 0
-
-        def region_query(i: int) -> np.ndarray:
-            d = distance_to_point(Xf, Xf[i], self.metric)
-            return np.where(d <= self.eps)[0]
-
-        for i in range(n):
-            if visited[i]:
-                continue
-            visited[i] = True
-
-            neighbors = region_query(i)
-            if neighbors.size < self.min_samples:
-                labels[i] = -1
-                continue
-
-            # start new cluster
-            labels[i] = cluster_id
-            seeds = list(neighbors.tolist())
-
-            k = 0
-            while k < len(seeds):
-                j = seeds[k]
-
-                if not visited[j]:
-                    visited[j] = True
-                    neighbors_j = region_query(j)
-                    if neighbors_j.size >= self.min_samples:
-                        # add neighbors (avoid duplicates)
-                        for nj in neighbors_j.tolist():
-                            if nj not in seeds:
-                                seeds.append(nj)
-
-                if labels[j] == -1:
-                    labels[j] = cluster_id
-
-                k += 1
-
-            cluster_id += 1
-
-        self.labels_ = labels
-        return self
-
-
-# ============================================================
 # CLI
 # ============================================================
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Task 1: Image segmentation with k-means or DBSCAN (from scratch).")
+    p = argparse.ArgumentParser(description="Task 1: Image segmentation with k-means or DBSCAN.")
     p.add_argument("--image", required=True, help="Input image path (jpg/png/...).")
     p.add_argument("--out", default="segmented.png", help="Output image path.")
 
@@ -227,6 +76,7 @@ def main() -> int:
 
     if args.algorithm == "kmeans":
         t0 = time.time()
+        from utils.model import KMeans
         model = KMeans(
             k=args.k,
             metric=args.distance,
@@ -253,6 +103,7 @@ def main() -> int:
         print(f"DBSCAN on {X_ds.shape[0]} points (downsample={factor})")
 
         t0 = time.time()
+        from utils.model import DBSCAN
         model = DBSCAN(
             eps=args.eps,
             min_samples=args.min_samples,
