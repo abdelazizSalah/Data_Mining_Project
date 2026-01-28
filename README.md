@@ -1,6 +1,59 @@
 # Data_Mining_Project
 This repo contains my implementation for data mining project in my master course
 
+## Task1: Clustering Experiments
+
+# Image Segmentation with K-Means and DBSCAN
+
+This script implements two clustering algorithms for image segmentation in clustering.py:
+- **K-Means clustering**
+- **DBSCAN clustering**
+
+Each pixel in the input image is treated as a 3D RGB vector. After clustering, pixels are recolored by the mean color of their assigned cluster.
+
+## Features
+
+- **Distance metrics:** Euclidean, Manhattan, Maximum (Chebyshev)
+- **Image segmentation:** Clusters pixels and recolors by cluster mean
+- **CLI interface:** Easily run segmentation from the command line
+- **Downsampling:** Optional speedup for DBSCAN via pixel downsampling
+
+## Usage
+
+Install dependencies:
+```sh
+pip install numpy pillow
+```
+
+### CLI Arguments
+
+- `--image`: Path to input image (required)
+- `--out`: Path to output image (default: segmented.png)
+- `--algorithm`: Clustering algorithm (`kmeans` or `dbscan`)
+- `--distance`: Distance metric (`euclidean`, `manhattan`, `maximum`)
+
+#### k-means params
+- `--k`: k-means: number of clusters (default: 8)
+- `--max-iter`: k-means: max iterations (default: 50)
+- `--tol`: k-means: centroid shift tolerance (default: 1e-4)
+- `--seed`: k-means: random seed (optional)
+
+#### dbscan params
+- `--eps`: DBSCAN: neighborhood radius eps (default: 12.0)
+- `--min-samples`: DBSCAN: min_samples (default: 8)
+- `--downsample`: DBSCAN speed helper. 2 means process every 2nd pixel in x/y (default: 1)
+
+### Example
+
+Segment an image using k-means with 5 clusters:
+```sh
+python clustering.py --image input.jpg --algorithm kmeans --k 5 --out segmented.png
+```
+
+Segment an image using DBSCAN with downsampling:
+```sh
+python clustering.py --image input.jpg --algorithm dbscan --eps 4 --min-samples 5 --downsample 2 --out segmented_dbscan.png
+```
 
 ## Task2: Classification Experiments
 - The main goal of this task is to implement K-Nearest-Neighbor classifier and compare its results to available algorithms and implementations. 
